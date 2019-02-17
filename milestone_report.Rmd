@@ -1,0 +1,324 @@
+---
+title: "Milestone Report"
+author: "Amandine Ligot"
+date: "19 janvier 2019"
+output: html_document
+---
+
+The aim of this report is to make an overview of what has been done so far on the corpora of texts used in order to build a predictive model.
+We will focus mostly on data exploratory analysis and conclude on some leads for the development of the model.
+
+# Data set
+
+The data set comprises three .txt files: **en_US.blogs.txt**, **en_US.twitter.txt** and **en_US.news.txt**. They are from the corpora of texts that will be used as the training data set.
+
+```{r, cache=TRUE, message=FALSE, warning=FALSE}
+con_twit <- file("en_US.twitter.txt", "r")
+twit <- readLines(con_twit, encoding = "UTF-8")
+close(con_twit)
+
+con_blog <- file("en_US.blogs.txt", "r")
+blog <- readLines(con_blog, encoding = "UTF-8")
+close(con_blog)
+
+con_news <- file("en_US.news.txt", "r")
+news <- readLines(con_news, encoding = "UTF-8")
+close(con_news)
+```
+
+As observed, the files are rather big and contain a lot of sentences (see table). It will not be possible to use all the data to build the model. It will ask too much memory space to compute everything. That is why a sample of each text was taken.
+
+```{r,cache=TRUE, echo=FALSE, warning=FALSE}
+library(knitr)
+
+#get the file size of each file
+fb <- file.size("en_US.blogs.txt")/1000000
+fn <- file.size("en_US.news.txt")/1000000
+ft <- file.size("en_US.twitter.txt")/1000000
+
+#get the number of lines for each of the files
+lt <- length(twit)
+lb <- length(blog)
+ln <- length(news)
+
+n_twit <- nchar(twit)
+m_twit <- max(n_twit)
+
+n_blog <- nchar(blog)
+m_blog <-max(n_blog)
+
+n_news <- nchar(news)
+m_news <-max(n_news)
+
+df <- data.frame( var1 = c(fb, ft, fn), var2 = c(lb,lt,ln),var3 = c(m_blog, m_twit, m_news), row.names = c("Blog", "Twitter", "News"))
+
+colnames(df) <- c("File size (MB)", "Number of lines", "Maximum characters in one sentence" )
+
+kable(df)
+
+blog_t <- 5*lb/100
+news_t <- 20*ln/100
+twit_t <- 1*lt/100
+```
+
+In order to get more correct English, the data set was sampled the following way:
+
+- Blog: 5% of the sentences was taken, representing `r format(blog_t, scientific = FALSE)` sentences
+- News: 20% of the sentences was taken, representing `r format(news_t, scientific = FALSE)` sentences
+- Twitter: 1% of the sentences was taken, representing `r format(twit_t, scientific = FALSE)` sentences
+
+New files were created (**sample_twitter.txt**, **sample_blog.txt**, **sample_news.txt**). This is with these files that the next analyses will be performed. The code that was used to obtain these samples is shown in Annexe.
+
+
+# Preprocessing
+
+Data need then to be pre-processed before looking at it. The **quanteda** package is used. The three texts are loaded into a corpus and then tokenized. Punctuation, separators, numbers, # and @ are removed. Also profanity words are also removed, from a list found in [here](https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words).
+One tokenize version is with stopwords and the second one is with stopwords removed. The latter is only used to explore the data. Most of the work will be done with the tokenize version with stopwords.
+
+```{r,cache=TRUE, warning=FALSE, message=FALSE}
+library(readtext)
+library(Rcpp)
+library(quanteda)
+library(ggplot2)
+
+#read the samples text in one file
+mytxt_twit <- readtext("sample_twitter.txt")
+mytxt_news <- readtext("sample_news.txt")
+mytxt_blog <- readtext("sample_blog.txt")
+
+#get a list of profanity words to remove from the data set
+con_pro <- file("en", "r")
+pro <- readLines(con_pro, encoding = "UTF-8")
+close(con_pro)
+
+#get a total corpus
+corp <- corpus(mytxt_twit) + corpus(mytxt_news) + corpus(mytxt_blog)
+
+#removing the punctuation, @ and #, and also the bad words from the list pro
+#keep the stopwords for this one
+#no stemming because, it is important to keep the words as it is in order to build the model afterwards
+
+tok <- tokens_remove(tokens(corp, remove_punct = TRUE, remove_separators = TRUE, remove_twitter = TRUE, remove_numbers = TRUE), c(pro,"u"))
+
+#tokenize version of the corpus, but this time with also stopwords removed
+tok_st <- tokens_remove(tokens(corp, remove_punct = TRUE, remove_separators = TRUE, remove_twitter = TRUE, remove_numbers = TRUE), c(pro,stopwords("english"),"u"))
+
+#then creation of the dfm in order to look at the data
+my_dfm <- dfm(tok)
+
+#dfm with stopwords removed
+my_dfm2 <- dfm(tok_st)
+```
+
+# Exploratory data analysis
+
+The R code can be found in Annexe.
+
+## Data without stopwords
+
+First we can take a look at the data set without stopwords and look at the 50 most frequent words. It can be looked at in a simple plot but also in a word-cloud. However the frequency of the words is really low and if we only take these words, we will not be able to cover a lot of possibilities.That is why it is better to look at the data that includes stopwords.
+
+```{r, cache=TRUE, warning=FALSE, message=FALSE, echo=FALSE}
+
+a2 <- textstat_frequency(my_dfm2)
+a2$per <- a2$frequency*100/sum(a2$frequency) #calculate the frequency of each word in total
+a2$feature <- reorder(a2$feature, -a2$per)
+a2_sub <- a2[1:50,]
+ggplot(a2_sub, aes(x = feature, y = per)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab("Frequency (%)")
+
+textplot_wordcloud(my_dfm2, max_words = 100, color = RColorBrewer::brewer.pal(8, "Dark2"))
+
+```
+
+## Data with stopwords
+
+The frequency of the words is presented in the following grah. Only the 50 first words are shown. It can be observed that most of the 50 first words are stopwords. Which makes sense when thinking about the structure of sentences in English. That also means that for the construction of the algorithm, stopwords will be needed and should not be removed from the data set.
+
+```{r, cache=TRUE, echo=FALSE, warning=FALSE}
+#look at the most frequent words
+#if no stemming, then the most frequent words are the,  to, a of, i,...
+a <- textstat_frequency(my_dfm)
+a$per <- a$frequency*100/sum(a$frequency) #calculate the frequency of each word in total
+a$feature <- reorder(a$feature, -a$per)
+a$cumu <- cumsum(a$per) #add cumulative calculation of frequency
+
+#plot the distribution of the words
+a_sub <- a[1:50,] #just look at the first 50 words
+ggplot(a_sub, aes(x = feature, y = per)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab("Frequency (%)")
+
+#know how many words needed to obtain 50% and 90% of the dictionnary
+a_50 <-sum(a$cumu <= 50)
+a_90 <- sum(a$cumu <= 90)
+
+```
+
+We can then look at the cumulative plot of all the frequencies.It can be observed that it needs `r a_50` words to cover 50% of the dictionnary. But  to get at 90%, it requires `r a_90` words. It means that to cover the last percentages of the dictionary, it will require an exponentional amount of words.
+
+```{r, cache=TRUE, warning=FALSE, echo=FALSE, message=FALSE}
+
+#plot the cumulative plot
+ggplot(a_sub, aes(x = feature, y = cumu)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab("Cumulative frequency (%)")
+
+```
+
+## N-grams
+
+To finish this exploatory data analysis, we can look at the 2 and 3-grams. These are made with the data set containing the stopwords.The maximum frequency is really low, meaning that there are a lot of possibilities covered by 2 and 3-grams. It also mean that we will need a lot of combinations to cover all the possibilities. 
+
+```{r, cache=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+
+#2-grams
+ng <- dfm(tok, ngrams = 2)
+a_ng <- textstat_frequency(ng)
+a_ng$per <- a_ng$frequency*100/sum(a_ng$frequency) #calculate the frequency for each features
+a_ng$feature <- reorder(a_ng$feature, -a_ng$per)
+a_ng_sub <- a_ng[1:50,]
+ggplot(a_ng_sub, aes(x = feature, y = per)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  ylab("Frequency (%)") +
+  ggtitle("2-grams")
+
+#3-gram
+ng3 <- dfm(tok, ngrams = 3)
+a_ng3 <- textstat_frequency(ng3)
+a_ng3$per <- a_ng3$frequency*100/sum(a_ng3$frequency)  #calculate the frequency for each features
+a_ng3$feature <- reorder(a_ng3$feature, -a_ng3$per)
+a_ng3_sub <- a_ng3[1:50,]
+ggplot(a_ng3_sub, aes(x = feature, y = per)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  ylab("Frequency (%)") +
+  ggtitle("3-grams")
+```
+
+## Words from foreign languages
+
+In the case of this data set, words from foreign language were not removed because the texts are mostly in plain English. If there were a few, their probability is too low to be accountable. If anyway it was needed to remove them, it can be done by using the functions **dfm_remove** or **tokens_remove** and dictionaries.
+
+
+# What is next?
+
+As shown above, a lot of words are needed if we want to cover all the dictionary. It has also to be taken into account that there are words that do not appear in the training set that will exist in the test set. It means that there are words which have a probability of existing (from the training set) that is equal to 0. To avoid that, smoothing will be needed to attribute a non-zero probability to these words.
+Moreover, because we saw that there are a lot of possibilities and probable kind of long-distance dependencies, it would be best to use interpolation to build the model. It means that a second sample of the training set needs to be used to determine these long-distance dependencies.
+
+
+# Annexe
+
+You can find below the code that was used in order to get a sample from the the news, blog and Twitter texts.
+
+```{r, eval=FALSE, echo=TRUE}
+#Aim: getting a sample of all the data sets
+set.seed(1200)
+
+#for Twitter data set
+con_twit <- file("en_US.twitter.txt", "r")
+twit <- readLines(con_twit, encoding = "UTF-8")
+close(con_twit)
+
+l_twit <- length(twit)
+
+twit <- twit[rbinom(l_twit, 1, 0.01) == 1] #take 1% of the Twit
+
+fileConn<-file("sample_twitter.txt")
+writeLines(twit, fileConn)
+close(fileConn)
+
+#For blog data set
+con_blog <- file("en_US.blogs.txt", "r")
+blog <- readLines(con_blog, encoding = "UTF-8")
+close(con_blog)
+
+l_blog <- length(blog)
+
+blog <- blog[rbinom(l_blog, 1, 0.05) == 1] #take 5% of the blog
+fileConn<-file("sample_blog.txt")
+writeLines(blog, fileConn)
+close(fileConn)
+
+#For news data set
+con_news <- file("en_US.news.txt", "r")
+news <- readLines(con_news, encoding = "UTF-8")
+close(con_news)
+
+l_news <- length(news)
+news <- news[rbinom(l_news, 1, 0.2) == 1] #take 20% of the news
+
+fileConn<-file("sample_news.txt")
+writeLines(news, fileConn)
+close(fileConn)
+```
+
+Here is the code used to get the graphs that are shown in the report:
+
+```{r, eval=FALSE, echo=TRUE, warning=FALSE}
+#Exploratory data analysis with texts without stopwords
+a2 <- textstat_frequency(my_dfm2)
+a2$per <- a2$frequency*100/sum(a2$frequency) #calculate the frequency of each word in total
+a2$feature <- reorder(a2$feature, -a2$per)
+a2_sub <- a2[1:50,]
+ggplot(a2_sub, aes(x = feature, y = per)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab("Frequency (%)")
+
+textplot_wordcloud(my_dfm2, max_words = 100, color = RColorBrewer::brewer.pal(8, "Dark2"))
+
+#Exploratory analysis with texts with stopwords
+#look at the most frequent words
+#if no stemming, then the most frequent words are the,  to, a of, i,...
+a <- textstat_frequency(my_dfm)
+a$per <- a$frequency*100/sum(a$frequency) #calculate the frequency of each word in total
+a$feature <- reorder(a$feature, -a$per)
+a$cumu <- cumsum(a$per) #add cumulative calculation of frequency
+
+#plot the distribution of the words
+a_sub <- a[1:50,] #just look at the first 50 words
+ggplot(a_sub, aes(x = feature, y = per)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab("Frequency (%)")
+
+#know how many words needed to obtain 50% and 90% of the dictionnary
+a_50 <-sum(a$cumu <= 50)
+a_90 <- sum(a$cumu <= 90)
+
+#plot the cumulative plot
+ggplot(a_sub, aes(x = feature, y = cumu)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab("Cumulative frequency (%)")
+
+#2-grams
+ng <- dfm(tok, ngrams = 2)
+a_ng <- textstat_frequency(ng)
+a_ng$per <- a_ng$frequency*100/sum(a_ng$frequency) #calculate the frequency for each features
+a_ng$feature <- reorder(a_ng$feature, -a_ng$per)
+a_ng_sub <- a_ng[1:50,]
+ggplot(a_ng_sub, aes(x = feature, y = per)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  ylab("Frequency (%)") +
+  ggtitle("2-grams")
+
+#3-gram
+ng3 <- dfm(tok, ngrams = 3)
+a_ng3 <- textstat_frequency(ng3)
+a_ng3$per <- a_ng3$frequency*100/sum(a_ng3$frequency)  #calculate the frequency for each features
+a_ng3$feature <- reorder(a_ng3$feature, -a_ng3$per)
+a_ng3_sub <- a_ng3[1:50,]
+ggplot(a_ng3_sub, aes(x = feature, y = per)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  ylab("Frequency (%)") +
+  ggtitle("3-grams")
+```
