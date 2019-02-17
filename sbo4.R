@@ -1,15 +1,3 @@
-library(data.table)
-library(stringr)
-library(qdapRegex)
-
-#read all th n-gram tables
-
-fifth <- fread("5gram.txt", key  = "n-1")
-fourth <- fread("4gram.txt", key = c("n-1","n"))
-tri <- fread("trigram.txt", key = c("n-1","n"))
-bi <- fread("bigram.txt", key =c("n-1","n"))
-uni <- fread("unigram.txt", key = "n")
-
 
 sbo4 <- function(w){
   
@@ -52,7 +40,7 @@ sbo4 <- function(w){
     tot <- rbind(possible5g,possible4g, possible3g, possible2g)
     setorder(tot, -score)
     tot <- na.omit(tot, cols = "score")
-    c(tot$n[1],tot$n[2],tot$n[3])
+    #c(tot$n[1],tot$n[2],tot$n[3])
     
   }else if(l ==3){
     
@@ -80,7 +68,7 @@ sbo4 <- function(w){
     tot <- rbind(possible4g, possible3g, possible2g)
     setorder(tot, -score)
     tot <- na.omit(tot, cols = "score")
-    c(tot$n[1],tot$n[2],tot$n[3])
+    #c(tot$n[1],tot$n[2],tot$n[3])
     
   }else if(l == 2){
     
@@ -105,9 +93,9 @@ sbo4 <- function(w){
     tot <- rbind(possible3g, possible2g)
     setorder(tot, -score)
     tot <- na.omit(tot, cols = "score")
-    c(tot$n[1],tot$n[2],tot$n[3])
+    #c(tot$n[1],tot$n[2],tot$n[3])
     
-  }else if(l==1){
+  }else{
     #get the matrix containing the possible n-grams
     possible2g <- bi[word(w,-1)]
     possible1g = copy(uni)
@@ -130,13 +118,8 @@ sbo4 <- function(w){
     tot <- rbind(possible2g, possible1g)
     tot <- na.omit(tot, cols = "score")
     setorder(tot, -score)
-    c(tot$n[1],tot$n[2],tot$n[3])
+    #c(tot$n[1],tot$n[2],tot$n[3])
     
-  }else{
-    possible1g = copy(uni)
-    setorder(possible1g,-frequency)
-    
-    c(possible1g$n[1], possible1g$n[2], possible1g$n[3])
   }
   
   

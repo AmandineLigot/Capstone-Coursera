@@ -1,6 +1,6 @@
 
 
-#Coursera Data Science Capstone
+# Coursera Data Science Capstone
 
 This repository gathers the scripts used to build a next word prediction algorithm.
 
@@ -17,4 +17,4 @@ Then the function **sbo4** uses a stupid backoff model to give the next word pre
 
 The slide deck can be found [here]()
 
-The Shiny app can be found [here]()
+The Shiny app can be found [here](https://amandineligot.shinyapps.io/Capstone/)
