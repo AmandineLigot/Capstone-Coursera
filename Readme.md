@@ -1,9 +1,6 @@
----
-title: "Coursera Data Science Capstone"
-output: html_document
----
 
 
+#Coursera Data Science Capstone
 
 This repository gathers the scripts used to build a next word prediction algorithm.
 
