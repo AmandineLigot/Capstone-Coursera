@@ -1,3 +1,6 @@
+library(shiny)
+library(shinyWidgets)
+
 library(data.table)
 library(stringr)
 library(qdapRegex)
@@ -12,4 +15,8 @@ uni <- fread("unigram.txt", key = "n")
 
 #and get the function
 
-source("sbo4.R")
+source("sbo5.R")
+
+compiler::enableJIT(0)
+
+cmp_sbo5 = compiler::cmpfun(sbo5)

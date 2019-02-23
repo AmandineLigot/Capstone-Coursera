@@ -5,8 +5,8 @@ account: amandineligot
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 722056
-bundleId: 1880920
+bundleId: 1893509
 url: https://amandineligot.shinyapps.io/Capstone/
-when: 1550422953.11869
+when: 1550919852.85487
 asMultiple: FALSE
 asStatic: FALSE

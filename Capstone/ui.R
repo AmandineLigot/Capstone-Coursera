@@ -1,7 +1,11 @@
 
-
 library(shiny)
 library(shinyWidgets)
+
+library(data.table)
+library(stringr)
+library(qdapRegex)
+
 
 shinyUI(fluidPage(theme = "bootstrap.css",
                   
@@ -35,15 +39,14 @@ shinyUI(fluidPage(theme = "bootstrap.css",
                            tags$style("#w {font-size:25px;}"),
                            h2(id ="in",textInput("w", "Enter sentence/word:")),
                            tags$style(HTML("#in{color: black;font-size: 25px;font-style: bold;}")),
-                           actionButton("b", "Submit",size = "large"),
-                           tags$style(HTML("#b{color: white;font-size: 25px;background-color: green}")),
+                           submitButton("Submit"),
                            br(),
                            br(),
                            br(),
                            h2(id="out","The next word prediction is:"),
                            tags$style(HTML("#out{color: black;font-size: 25px;font-style: bold;}")),
-                           h2(id= "result",textOutput("text")),
-                           tags$style(HTML("#result{color: black;font-size: 30px;font-style: bold;background-color: white}"))),
+                           h2(id= "result",textOutput("text"))),
+                           
                   tabPanel("Explanation",
                            br(),
                            br(),

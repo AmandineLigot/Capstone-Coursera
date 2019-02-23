@@ -1,0 +1,59 @@
+---
+title: "Capstone Project"
+author: "Amandine Ligot"
+date: "18 februari 2019"
+output: ioslides_presentation
+---
+
+## Introduction
+
+- Work made in the context of the Capstone project of the Data Science Specialization of Coursera
+
+- Aim:
+    + development of a next word prediction algorithm using Natural Language Processing
+    + construction of a Shiny app
+
+
+
+## Building the algorithm (1)
+
+- Original corpus gathers sentences from Twitter (more than 2 000 000 sentences), News (77 000 sentences) and Blogs (900 000 sentences)
+
+- Only the English texts were used
+
+- Only 50% of the total corpus was used to build the algorithm
+    + pre-treatment: remove profanity words, remove @, #, ponctuation,...
+
+- Construction of N-grams
+    + from 5 to 1-gram
+    + words with a frequency lower than 4 were removed
+    + saved as .txt files
+    
+
+
+## Building the algorithm (2)
+
+- First corresponding 5-grams are looked for. If there are less than five 5-grams, then the search is also made in 4-grams. If there are still not five possibilities, then 3-grams are used and so on, until five possibilities are found.
+
+- Scores are calculated following the Stupid Backoff method
+
+- The most probable word is then determined
+
+- The algorithm can be found in [Github](https://github.com/AmandineLigot/Capstone-Coursera)
+
+
+
+## Shiny app
+
+- The Shiny app can be found [here](https://amandineligot.shinyapps.io/Capstone/)
+
+```{r  out.width = "50%", echo=FALSE, fig.align='center'}
+library(knitr)
+include_graphics("D:/Users/apucj/Desktop/en_US/Capstone_Coursera/picture app.png") 
+```
+
+- A word or a sentence should be entered in the field
+
+- Click on **Submit**
+
+- The most probable word to follow the sentence is given
